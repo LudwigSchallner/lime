@@ -1,3 +1,7 @@
+# changes 
+The changes were done so that LIME supports multiple super pixel methods like felzsenswalb, SLIC and Compact-Watershed.
+The impact of those changes is shown in https://arxiv.org/abs/1910.07856 
+
 # lime
 
 [![Build Status](https://travis-ci.org/marcotcr/lime.svg?branch=master)](https://travis-ci.org/marcotcr/lime)
