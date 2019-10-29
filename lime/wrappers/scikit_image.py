@@ -1,6 +1,6 @@
 import types
 from lime.utils.generic_utils import has_arg
-from skimage.segmentation import felzenszwalb, slic, quickshift
+from skimage.segmentation import felzenszwalb, slic, quickshift, watershed
 
 
 class BaseWrapper(object):
@@ -111,6 +111,10 @@ class SegmentationAlgorithm(BaseWrapper):
         elif (self.algo_type == 'slic'):
             BaseWrapper.__init__(self, slic, **target_params)
             kwargs = self.filter_params(slic)
+            self.set_params(**kwargs)
+        elif (self.algo_type == 'watershed'):
+            BaseWrapper.__init__(self, watershed, **target_params)
+            kwargs = self.filter_params(watershed)
             self.set_params(**kwargs)
 
     def __call__(self, *args):

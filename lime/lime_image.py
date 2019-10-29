@@ -11,7 +11,10 @@ from skimage.color import gray2rgb
 
 from . import lime_base
 from .wrappers.scikit_image import SegmentationAlgorithm
-
+#CHANGE
+from skimage.filters import sobel
+from skimage.color import rgb2gray
+from skimage.segmentation import felzenszwalb, slic, quickshift, watershed
 
 class ImageExplanation(object):
     def __init__(self, image, segments):
@@ -120,6 +123,20 @@ class LimeImageExplainer(object):
                          segmentation_fn=None,
                          distance_metric='cosine',
                          model_regressor=None,
+                         #watershed
+                         markers_v=250, 
+                         compactness_ws=0.001,
+                         #slic
+                         number_of_segments=200,
+                         compactness_slic=10,
+                         sigma_v=3,
+                         #felzenszwalb
+                         scale_v=100, 
+                         min_size_v=50,
+                         #quickshift
+                         kernel_size_v=4,
+                         max_dist_v=200,
+                         ratio_v=0.2,
                          random_seed=None):
         """Generates explanations for a prediction.
 
@@ -158,30 +175,63 @@ class LimeImageExplainer(object):
         """
         if len(image.shape) == 2:
             image = gray2rgb(image)
+        isgray = False
         if random_seed is None:
             random_seed = self.random_state.randint(0, high=1000)
 
-        if segmentation_fn is None:
-            segmentation_fn = SegmentationAlgorithm('quickshift', kernel_size=4,
-                                                    max_dist=200, ratio=0.2,
+
+        if segmentation_fn is None or segmentation_fn is 'quickshift':
+            segmentation_fn = SegmentationAlgorithm('quickshift', kernel_size=kernel_size_v,
+                                                    max_dist=max_dist_v, ratio=ratio_v,
                                                     random_seed=random_seed)
+        elif segmentation_fn is 'slic':
+            #segmentation_fn = SegmentationAlgorithm('slic', n_segments=100, compactness=10, sigma=3)
+            segmentation_fn = SegmentationAlgorithm('slic', n_segments=number_of_segments, compactness=compactness_slic, sigma=sigma_v)
+        elif segmentation_fn is 'watershed':
+            isgray = True
+            gradient = (rgb2gray(image))
+            #segmentation_fn = SegmentationAlgorithm('watershed', markers=250, compactness=0.001)
+            segmentation_fn = SegmentationAlgorithm('watershed', markers=markers_v, compactness=compactness_ws)
+            image = gradient
+        elif segmentation_fn is 'felzenszwalb':
+            #segmentation_fn = SegmentationAlgorithm('felzenszwalb', scale=100, sigma=0.5, min_size=50)
+            segmentation_fn = SegmentationAlgorithm('felzenszwalb', scale=scale_v, sigma=sigma_v, min_size=min_size_v)
+        
+        
+        
         try:
             segments = segmentation_fn(image)
         except ValueError as e:
             raise e
 
+        if len(image.shape) == 2: #changed added/moved
+            image = gray2rgb(image)
+
         fudged_image = image.copy()
-        if hide_color is None:
-            for x in np.unique(segments):
-                fudged_image[segments == x] = (
-                    np.mean(image[segments == x][:, 0]),
-                    np.mean(image[segments == x][:, 1]),
-                    np.mean(image[segments == x][:, 2]))
+        if hide_color is None:            
+            if isgray == False: ###
+                for x in np.unique(segments):
+                    fudged_image[segments == x] = (
+                        np.mean(image[segments == x][:, 0]),
+                        np.mean(image[segments == x][:, 1]),
+                        np.mean(image[segments == x][:, 2]))
+            else:
+                 for x in np.unique(segments):
+                    fudged_image[segments == x] = (
+                        np.mean(image[segments == x][:]))
         else:
-            fudged_image[:] = hide_color
+           fudged_image[:] = hide_color
+
+        # if hide_color is None:            
+        #     for x in np.unique(segments):
+        #         fudged_image[segments == x] = (
+        #             np.mean(image[segments == x][:, 0]),
+        #             np.mean(image[segments == x][:, 1]),
+        #             np.mean(image[segments == x][:, 2]))    
+        # else:
+        #    fudged_image[:] = hide_color
 
         top = labels
-
         data, labels = self.data_labels(image, fudged_image, segments,
                                         classifier_fn, num_samples,
                                         batch_size=batch_size)
