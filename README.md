@@ -1,6 +1,6 @@
 # changes 
 The changes were done so that LIME supports multiple super pixel methods like felzsenswalb, SLIC and Compact-Watershed.
-The impact of those changes is shown in https://arxiv.org/abs/1910.07856 
+The impact of those changes are shown in this Paper https://arxiv.org/abs/1910.07856 
 
 # lime
 
